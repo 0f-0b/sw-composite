@@ -207,7 +207,7 @@ impl TwoCircleRadialGradientSource {
             }
         };
 
-        self.lut[apply_spread((t * 255.) as i32, spread) as usize]
+        self.lut[apply_spread((t * 255. + 0.5) as i32, spread) as usize]
     }
 }
 
@@ -261,7 +261,7 @@ impl SweepGradientSource {
 
         let t = r * self.t_scale - self.t_bias;
 
-        let result = self.lut[apply_spread((t * 255.) as i32, spread) as usize];
+        let result = self.lut[apply_spread((t * 255. + 0.5) as i32, spread) as usize];
         result
     }
 }
@@ -365,53 +365,36 @@ impl Gradient {
     }
 
     fn build_lut(&self, lut: &mut [u32; 256], alpha: Alpha256) {
-        let mut stop_idx = 0;
-        let mut stop = &self.stops[stop_idx];
+        let mut last_color = alpha_mul(self.stops[0].color.0, alpha);
+        let mut last_pos = 0;
 
-        let mut last_color = alpha_mul(stop.color.0, alpha);
-
-        let mut next_color = last_color;
-        let mut next_pos = (255. * stop.position) as u32;
-
-        let mut i = 0;
+        let mut i = 1;
 
         const FIXED_SHIFT: u32 = 8;
         const FIXED_ONE: u32 = 1 << FIXED_SHIFT;
         const FIXED_HALF: u32 = FIXED_ONE >> 1;
 
-        while i < 255 {
-            while next_pos <= i {
-                stop_idx += 1;
-                last_color = next_color;
-                if stop_idx >= self.stops.len() {
-                    stop = &self.stops[self.stops.len() - 1];
-                    next_pos = 255;
-                    next_color = alpha_mul(stop.color.0, alpha);
-                    break;
-                } else {
-                    stop = &self.stops[stop_idx];
+        lut[0] = premultiply(last_color);
+        for stop in &self.stops {
+            let next_color = alpha_mul(stop.color.0, alpha);
+            let next_pos = (256. * stop.position + 0.5) as u32;
+            if last_pos < next_pos {
+                let inverse = (FIXED_ONE * 256) / (next_pos - last_pos);
+                // XXX we could actually avoid doing any multiplications inside
+                // this loop by accumulating (next_color - last_color)*inverse
+                // that's what Skia does
+                while i < next_pos && i < 255 {
+                    let t = (i - last_pos) * inverse;
+                    // stops need to be represented in unpremultipled form otherwise we lose information
+                    // that we need when lerping between colors
+                    lut[i as usize] = premultiply(lerp(last_color, next_color, (t + FIXED_HALF) >> FIXED_SHIFT));
+                    i += 1;
                 }
-                next_pos = (255. * stop.position) as u32;
-                next_color = alpha_mul(stop.color.0, alpha);
             }
-            let inverse = (FIXED_ONE * 256) / (next_pos - i);
-            let mut t = 0;
-            // XXX we could actually avoid doing any multiplications inside
-            // this loop by accumulating (next_color - last_color)*inverse
-            // that's what Skia does
-            while i <= next_pos && i < 255 {
-                // stops need to be represented in unpremultipled form otherwise we lose information
-                // that we need when lerping between colors
-                lut[i as usize] = premultiply(lerp(last_color, next_color, (t + FIXED_HALF) >> FIXED_SHIFT));
-                t += inverse;
-
-                i += 1;
-            }
+            last_color = next_color;
+            last_pos = next_pos;
         }
-        // we manually assign the last stop to ensure that it ends up in the last spot even
-        // if there's a stop very close to the end. This also avoids a divide-by-zero when
-        // calculating inverse
-        lut[255] = premultiply(alpha_mul(self.stops[self.stops.len() - 1].color.0, alpha));
+        lut[i as usize..].fill(premultiply(last_color));
     }
 
 }
