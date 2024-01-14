@@ -186,24 +186,24 @@ impl TwoCircleRadialGradientSource {
         let b = pdx*cdx + pdy*cdy + self.r1*dr;
         let c = pdx*pdx + pdy*pdy - self.r1*self.r1;
         let discr = b*b - a*c;
+        if discr < 0. {
+            return 0;
+        }
 
         let t = if a == 0. {
-            let t =  1./2. * (c / b);
-            if self.r1 * (1. - t) + t * self.r2 < 0. {
-                return 0;
+            let t = 0.5 * (c / b);
+            match self.r1 + t * dr < 0. {
+                false => t,
+                true => return 0,
             }
-            t
         } else {
-            if discr < 0. {
-                return 0;
-            } else {
-                let t1 = (b + discr.sqrt())/a;
-                let t2 = (b - discr.sqrt())/a;
-                if t1 > t2 {
-                    t1
-                } else {
-                    t2
-                }
+            let t1 = (b + discr.sqrt()) / a;
+            let t2 = (b - discr.sqrt()) / a;
+            match (self.r1 + t1 * dr < 0., self.r1 + t2 * dr < 0.) {
+                (false, false) => t1.max(t2),
+                (false, true) => t1,
+                (true, false) => t2,
+                (true, true) => return 0,
             }
         };
 
