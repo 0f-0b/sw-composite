@@ -625,7 +625,7 @@ fn bilinear_interpolation_alpha(
 
 const FIXED_FRACTION_BITS: u32 = 16;
 pub const FIXED_ONE: i32 = 1 << FIXED_FRACTION_BITS;
-const FIXED_HALF: i32 = FIXED_ONE >> 1;
+pub const FIXED_HALF: i32 = FIXED_ONE >> 1;
 
 fn bilinear_weight(x: Fixed) -> u32 {
     // discard the unneeded bits of precision
@@ -637,7 +637,7 @@ fn bilinear_weight(x: Fixed) -> u32 {
 
 type Fixed = i32;
 
-fn fixed_to_int(x: Fixed) -> i32 {
+pub fn fixed_to_int(x: Fixed) -> i32 {
     x >> FIXED_FRACTION_BITS
 }
 
