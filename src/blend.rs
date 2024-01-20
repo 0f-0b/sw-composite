@@ -385,14 +385,14 @@ impl Blend for HardLight {
 }
 
 // https://web.archive.org/web/20060317035105/www.worldserver.com/turk/computergraphics/FixedSqrt.pdf
-fn sqrt_bits(x: i32, count: i32) -> i32 {
-    debug_assert!(x >= 0 && count > 0 && count <= 30);
+fn sqrt_bits(x: u32, count: u32) -> u32 {
+    debug_assert!(count <= 30);
 
     let mut root = 0;
     let mut rem_hi = 0;
     let mut rem_lo = x;
 
-    loop {
+    for _ in 0..count {
         root <<= 1;
 
         rem_hi = (rem_hi << 2) | (rem_lo >> 30);
@@ -403,9 +403,6 @@ fn sqrt_bits(x: i32, count: i32) -> i32 {
             rem_hi -= test_div;
             root += 1;
         }
-        if -count < 0 {
-            break;
-        }
     }
 
     root
@@ -415,7 +412,7 @@ type U8Cpu = u32;
 
 // returns 255 * sqrt(n/255)
 fn sqrt_unit_byte(n: U8Cpu) -> U8Cpu {
-    sqrt_bits(n as i32, 15 + 4) as u32
+    sqrt_bits(n, 16 + 4)
 }
 
 fn softlight_byte(sc: i32, dc: i32, sa: i32, da: i32) -> u32 {
