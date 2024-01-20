@@ -12,6 +12,15 @@ pub trait Blend {
     fn blend(src: u32, dst: u32) -> u32;
 }
 
+pub struct Opaque<T>(std::marker::PhantomData<T>);
+
+impl<T: Blend> Blend for Opaque<T> {
+    #[inline]
+    fn blend(src: u32, dst: u32) -> u32 {
+        T::blend(src, dst) | 0xff000000
+    }
+}
+
 pub struct Dst;
 
 impl Blend for Dst {
