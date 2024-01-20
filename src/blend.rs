@@ -606,9 +606,9 @@ impl Blend for Hue {
         let mut Sb;
 
         if sa != 0 && da != 0 {
-            Sr = sr * sa;
-            Sg = sg * sa;
-            Sb = sb * sa;
+            Sr = sr * da;
+            Sg = sg * da;
+            Sb = sb * da;
             set_sat(&mut Sr, &mut Sg, &mut Sb, sat(dr, dg, db) * sa);
             set_lum(&mut Sr, &mut Sg, &mut Sb, sa * da, lum(dr, dg, db) * sa);
         } else {
@@ -682,9 +682,9 @@ impl Blend for Color {
         let mut Sb;
 
         if sa != 0 && da != 0 {
-            Sr = sr * sa;
-            Sg = sg * sa;
-            Sb = sb * sa;
+            Sr = sr * da;
+            Sg = sg * da;
+            Sb = sb * da;
             set_lum(&mut Sr, &mut Sg, &mut Sb, sa * da, lum(dr, dg, db) * sa);
         } else {
             Sr = 0;
